@@ -27,7 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 
-type Mode = "standard" | "scientific" | "unit" | "date";
+type Mode = "standard" | "scientific" | "unit" | "date" | "finance" | "health";
 
 type HistoryItem = {
   id: string;
@@ -1059,6 +1059,92 @@ function UnitConverter() {
   );
 }
 
+function FinanceCalculator() {
+  const [loanAmount, setLoanAmount] = useState<string>("250000");
+  const [interestRate, setInterestRate] = useState<string>("5.5");
+  const [loanTerm, setLoanTerm] = useState<string>("30");
+
+  const monthlyPayment = useMemo(() => {
+    const p = tryParseNumberLike(loanAmount);
+    const r = tryParseNumberLike(interestRate) / 100 / 12;
+    const n = tryParseNumberLike(loanTerm) * 12;
+    if (!p || !r || !n) return 0;
+    const payment = (p * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+    return payment;
+  }, [loanAmount, interestRate, loanTerm]);
+
+  return (
+    <div className="grid gap-4">
+      <div className="glass rounded-2xl p-4">
+        <div className="font-display text-xl tracking-tight">Mortgage / Loan Calculator</div>
+        <Separator className="my-4" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Loan Amount ($)</div>
+            <Input value={loanAmount} onChange={(e) => setLoanAmount(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Interest Rate (%)</div>
+            <Input value={interestRate} onChange={(e) => setInterestRate(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Loan Term (Years)</div>
+            <Input value={loanTerm} onChange={(e) => setLoanTerm(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-6 glass rounded-xl px-4 py-3">
+          <div className="text-xs text-muted-foreground">Estimated Monthly Payment</div>
+          <div className="mt-1 font-display text-3xl tracking-tight text-primary">
+            ${formatNumber(monthlyPayment)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HealthCalculator() {
+  const [weight, setWeight] = useState<string>("70");
+  const [height, setHeight] = useState<string>("175");
+
+  const bmi = useMemo(() => {
+    const w = tryParseNumberLike(weight);
+    const h = tryParseNumberLike(height) / 100;
+    if (!w || !h) return 0;
+    return w / (h * h);
+  }, [weight, height]);
+
+  const category = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Healthy" : bmi < 30 ? "Overweight" : "Obese";
+
+  return (
+    <div className="grid gap-4">
+      <div className="glass rounded-2xl p-4">
+        <div className="font-display text-xl tracking-tight">BMI Calculator</div>
+        <Separator className="my-4" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Weight (kg)</div>
+            <Input value={weight} onChange={(e) => setWeight(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Height (cm)</div>
+            <Input value={height} onChange={(e) => setHeight(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-6 glass rounded-xl px-4 py-3">
+          <div className="flex justify-between">
+            <div className="text-xs text-muted-foreground">BMI Score</div>
+            <div className="text-xs font-bold text-primary">{category}</div>
+          </div>
+          <div className="mt-1 font-display text-3xl tracking-tight">
+            {formatNumber(bmi)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DateCalculator() {
   const [start, setStart] = useState<string>(
     () => new Date().toISOString().slice(0, 10),
@@ -1222,6 +1308,10 @@ export default function CalculatorLab() {
       <Ruler className="h-4 w-4" />
     ) : mode === "date" ? (
       <Clock className="h-4 w-4" />
+    ) : mode === "finance" ? (
+      <Sigma className="h-4 w-4" />
+    ) : mode === "health" ? (
+      <RefreshCcw className="h-4 w-4" />
     ) : (
       <Calculator className="h-4 w-4" />
     );
@@ -1242,11 +1332,8 @@ export default function CalculatorLab() {
               {headerIcon}
             </div>
             <div>
-              <div
-                className="font-display text-2xl tracking-tight"
-                data-testid="text-app-title"
-              >
-                Calculator Lab
+              <div className="font-display text-2xl tracking-tight" data-testid="text-app-title">
+                Calculator Web
               </div>
               <div className="text-sm text-muted-foreground" data-testid="text-app-subtitle">
                 Accurate results, multiple calculators, one workspace.
@@ -1283,24 +1370,26 @@ export default function CalculatorLab() {
           <Card className="glass rounded-3xl border-0 p-4 md:p-6">
             <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
               <TabsList
-                className="grid w-full grid-cols-4"
+                className="grid w-full grid-cols-3 gap-2 md:grid-cols-6"
                 data-testid="tabs-calculators"
               >
                 <TabsTrigger value="standard" data-testid="tab-standard">
-                  <Calculator className="mr-2 h-4 w-4" />
                   Standard
                 </TabsTrigger>
                 <TabsTrigger value="scientific" data-testid="tab-scientific">
-                  <Sigma className="mr-2 h-4 w-4" />
                   Scientific
                 </TabsTrigger>
                 <TabsTrigger value="unit" data-testid="tab-unit">
-                  <Ruler className="mr-2 h-4 w-4" />
                   Units
                 </TabsTrigger>
                 <TabsTrigger value="date" data-testid="tab-date">
-                  <Clock className="mr-2 h-4 w-4" />
                   Dates
+                </TabsTrigger>
+                <TabsTrigger value="finance" data-testid="tab-finance">
+                  Finance
+                </TabsTrigger>
+                <TabsTrigger value="health" data-testid="tab-health">
+                  Health
                 </TabsTrigger>
               </TabsList>
 
@@ -1316,6 +1405,12 @@ export default function CalculatorLab() {
                 </TabsContent>
                 <TabsContent value="date">
                   <DateCalculator />
+                </TabsContent>
+                <TabsContent value="finance">
+                  <FinanceCalculator />
+                </TabsContent>
+                <TabsContent value="health">
+                  <HealthCalculator />
                 </TabsContent>
               </div>
             </Tabs>
