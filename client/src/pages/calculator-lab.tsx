@@ -27,7 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 
-type Mode = "standard" | "scientific" | "unit" | "date" | "finance" | "health";
+type Mode = "standard" | "scientific" | "unit" | "date" | "finance" | "health" | "age" | "discount";
 
 type HistoryItem = {
   id: string;
@@ -1145,6 +1145,108 @@ function HealthCalculator() {
   );
 }
 
+function AgeCalculator() {
+  const [birthDate, setBirthDate] = useState<string>("2000-01-01");
+  const [targetDate, setTargetDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+
+  const age = useMemo(() => {
+    const birth = new Date(birthDate);
+    const target = new Date(targetDate);
+    if (isNaN(birth.getTime()) || isNaN(target.getTime())) return null;
+
+    let years = target.getFullYear() - birth.getFullYear();
+    let months = target.getMonth() - birth.getMonth();
+    let days = target.getDate() - birth.getDate();
+
+    if (days < 0) {
+      months--;
+      const lastMonth = new Date(target.getFullYear(), target.getMonth(), 0);
+      days += lastMonth.getDate();
+    }
+    if (months < 0) {
+      years--;
+      months += 12;
+    }
+
+    return { years, months, days };
+  }, [birthDate, targetDate]);
+
+  return (
+    <div className="grid gap-4">
+      <div className="glass rounded-2xl p-4">
+        <div className="font-display text-xl tracking-tight">Age Calculator</div>
+        <Separator className="my-4" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Date of Birth</div>
+            <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Age at Date of</div>
+            <Input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-6 glass rounded-xl px-4 py-3">
+          <div className="text-xs text-muted-foreground">Resulting Age</div>
+          <div className="mt-1 font-display text-3xl tracking-tight">
+            {age ? `${age.years} years, ${age.months} months, ${age.days} days` : "Invalid date"}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DiscountCalculator() {
+  const [price, setPrice] = useState<string>("100");
+  const [discount, setDiscount] = useState<string>("20");
+
+  const savings = useMemo(() => {
+    const p = tryParseNumberLike(price);
+    const d = tryParseNumberLike(discount);
+    if (isNaN(p) || isNaN(d)) return 0;
+    return (p * d) / 100;
+  }, [price, discount]);
+
+  const finalPrice = useMemo(() => {
+    const p = tryParseNumberLike(price);
+    return isNaN(p) ? 0 : p - savings;
+  }, [price, savings]);
+
+  return (
+    <div className="grid gap-4">
+      <div className="glass rounded-2xl p-4">
+        <div className="font-display text-xl tracking-tight">Discount Calculator</div>
+        <Separator className="my-4" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Original Price ($)</div>
+            <Input value={price} onChange={(e) => setPrice(e.target.value)} />
+          </div>
+          <div className="grid gap-2">
+            <div className="text-xs text-muted-foreground">Discount (%)</div>
+            <Input value={discount} onChange={(e) => setDiscount(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-6 grid grid-cols-2 gap-4">
+          <div className="glass rounded-xl px-4 py-3">
+            <div className="text-xs text-muted-foreground">Final Price</div>
+            <div className="mt-1 font-display text-2xl tracking-tight text-primary">
+              ${formatNumber(finalPrice)}
+            </div>
+          </div>
+          <div className="glass rounded-xl px-4 py-3">
+            <div className="text-xs text-muted-foreground">You Save</div>
+            <div className="mt-1 font-display text-2xl tracking-tight text-accent">
+              ${formatNumber(savings)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DateCalculator() {
   const [start, setStart] = useState<string>(
     () => new Date().toISOString().slice(0, 10),
@@ -1312,6 +1414,10 @@ export default function CalculatorLab() {
       <Sigma className="h-4 w-4" />
     ) : mode === "health" ? (
       <RefreshCcw className="h-4 w-4" />
+    ) : mode === "age" ? (
+      <Clock className="h-4 w-4" />
+    ) : mode === "discount" ? (
+      <Percent className="h-4 w-4" />
     ) : (
       <Calculator className="h-4 w-4" />
     );
@@ -1370,7 +1476,7 @@ export default function CalculatorLab() {
           <Card className="glass rounded-3xl border-0 p-4 md:p-6">
             <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
               <TabsList
-                className="grid w-full grid-cols-3 gap-2 md:grid-cols-6"
+                className="grid w-full grid-cols-4 gap-2 md:grid-cols-8"
                 data-testid="tabs-calculators"
               >
                 <TabsTrigger value="standard" data-testid="tab-standard">
@@ -1390,6 +1496,12 @@ export default function CalculatorLab() {
                 </TabsTrigger>
                 <TabsTrigger value="health" data-testid="tab-health">
                   Health
+                </TabsTrigger>
+                <TabsTrigger value="age" data-testid="tab-age">
+                  Age
+                </TabsTrigger>
+                <TabsTrigger value="discount" data-testid="tab-discount">
+                  Discount
                 </TabsTrigger>
               </TabsList>
 
@@ -1411,6 +1523,12 @@ export default function CalculatorLab() {
                 </TabsContent>
                 <TabsContent value="health">
                   <HealthCalculator />
+                </TabsContent>
+                <TabsContent value="age">
+                  <AgeCalculator />
+                </TabsContent>
+                <TabsContent value="discount">
+                  <DiscountCalculator />
                 </TabsContent>
               </div>
             </Tabs>
