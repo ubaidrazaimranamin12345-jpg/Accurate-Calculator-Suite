@@ -27,7 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 
-type Mode = "standard" | "scientific" | "unit" | "date" | "finance" | "health" | "age" | "discount";
+type Mode = "standard" | "scientific" | "unit" | "date" | "finance" | "health" | "age" | "discount" | "ai";
 
 type HistoryItem = {
   id: string;
@@ -336,6 +336,70 @@ function Key({
     >
       {label}
     </button>
+  );
+}
+
+function AIChat() {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<{ role: "user" | "ai"; content: string; video?: string }[]>([
+    { role: "ai", content: "Hello! I am your AI Science Assistant. I can solve Math, Physics, and Chemistry problems. I can even generate explanatory videos for you. How can I help today?" }
+  ]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    const userMsg = input;
+    setInput("");
+    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setLoading(true);
+
+    // Mock AI Response - In a real app, this would call an LLM API
+    setTimeout(() => {
+      let aiResponse = "That's an interesting question! Based on my analysis...";
+      let videoLink = undefined;
+
+      if (userMsg.toLowerCase().includes("physics") || userMsg.toLowerCase().includes("solve")) {
+        aiResponse = "To solve this physics problem, we use the formula F = ma. Given your parameters, the force is 50 Newtons. I've also generated a short simulation video for you.";
+        videoLink = "https://www.w3schools.com/html/mov_bbb.mp4"; // Placeholder video
+      } else if (userMsg.toLowerCase().includes("chemistry")) {
+        aiResponse = "The chemical reaction you're asking about is an exothermic process. Here is the balanced equation: 2H2 + O2 -> 2H2O.";
+      }
+
+      setMessages(prev => [...prev, { role: "ai", content: aiResponse, video: videoLink }]);
+      setLoading(false);
+    }, 1500);
+  };
+
+  return (
+    <div className="flex flex-col h-[500px] gap-4">
+      <div className="flex-1 overflow-y-auto glass rounded-2xl p-4 space-y-4">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${m.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}`}>
+              <div className="text-sm">{m.content}</div>
+              {m.video && (
+                <div className="mt-2 space-y-2">
+                  <div className="text-xs font-bold text-accent">AI Generated Video:</div>
+                  <video src={m.video} controls className="rounded-lg w-full max-h-40 bg-black" />
+                  <a href={m.video} target="_blank" rel="noreferrer" className="text-xs underline block">Open Video Link</a>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+        {loading && <div className="text-xs text-muted-foreground animate-pulse">AI is thinking and generating video...</div>}
+      </div>
+      <div className="flex gap-2">
+        <Input 
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Ask a math, physics or chemistry question..." 
+          className="flex-1"
+        />
+        <Button onClick={handleSend} disabled={loading}>Ask AI</Button>
+      </div>
+    </div>
   );
 }
 
@@ -1418,6 +1482,8 @@ export default function CalculatorLab() {
       <Clock className="h-4 w-4" />
     ) : mode === "discount" ? (
       <Percent className="h-4 w-4" />
+    ) : mode === "ai" ? (
+      <Sigma className="h-4 w-4 text-accent" />
     ) : (
       <Calculator className="h-4 w-4" />
     );
@@ -1503,6 +1569,9 @@ export default function CalculatorLab() {
                 <TabsTrigger value="discount" data-testid="tab-discount">
                   Discount
                 </TabsTrigger>
+                <TabsTrigger value="ai" data-testid="tab-ai" className="bg-accent/10 text-accent font-bold">
+                  AI Solver
+                </TabsTrigger>
               </TabsList>
 
               <div className="mt-5">
@@ -1529,6 +1598,9 @@ export default function CalculatorLab() {
                 </TabsContent>
                 <TabsContent value="discount">
                   <DiscountCalculator />
+                </TabsContent>
+                <TabsContent value="ai">
+                  <AIChat />
                 </TabsContent>
               </div>
             </Tabs>
